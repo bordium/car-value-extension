@@ -9,6 +9,9 @@
         "48": "icons/icon48.png",
         "128": "icons/icon128.png"
     },
+    "host_permissions": [
+        "*://*.facebook.com/marketplace/*",
+    ],
     "permissions": [
         "storage",
         "scripting"
@@ -16,5 +19,13 @@
     "options_ui": {
         "page": "src/options/index.html",
         "open_in_tab": true
-    }
+    },
+    "content_scripts": [
+        {
+            "matches": ["*://*.facebook.com/marketplace/*"],
+            "js": ["contentScript.js"],
+            "css": ["inject.css"],
+            "run_at": "document_idle"
+        }
+    ]
 }
