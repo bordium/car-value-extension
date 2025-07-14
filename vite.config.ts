@@ -4,18 +4,22 @@ import { resolve } from 'path'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [
-    tailwindcss(),
-    react()
-  ],
-  build: {
-    rollupOptions: {
-      input: {
-        options: resolve(__dirname, 'src/options/index.html'),
-      },
-      output: {
-        dir: "dist"
-      }
+    base: './',
+    plugins: [
+        tailwindcss(),
+        react()
+    ],
+    build: {
+        outDir: "dist",
+        rollupOptions: {
+        input: {
+            'options/index': resolve(__dirname, 'src/options/index.html'),
+        },
+        output: {
+            entryFileNames: '[name].js',
+            chunkFileNames: 'assets/[name]-[hash].js',
+            assetFileNames: 'assets/[name]-[hash][extname]'
+        }
+        }
     }
-  }
 })
