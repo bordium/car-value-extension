@@ -7,45 +7,94 @@ if (url.includes('facebook.com/marketplace')) {
     site = 'craigslist';
 }
 
+/**
+ * Gets the integer price from a price string.
+ * 
+ * @param priceEl 
+ * @returns price as an integer or undefined if invalid.
+ */
+function getPrice(priceStr: string): number | null {
+    console.log('priceStr:', priceStr);
+    const regex = /[0-9.,]+/g;
+    const match = priceStr.match(regex)?.[0];
+    const price = match ? parseInt(match.trim(), 10) : NaN;
+    
+    if (isNaN(price)) {
+        console.warn('Invalid price found:', priceStr);
+        return null;
+    }
+
+    return price;
+}
+
+/**
+ * Start with el and traverse up the DOM tree to
+ * find the nearest <img> element. If no <img> is found,
+ * keep looking in parent elements.
+ * @param el 
+ * @returns HTMLImageElement or null if not found. 
+ */
+function findNearestImg(el: Element): HTMLImageElement | null {
+  let ancestor = el.parentElement;
+  while (ancestor) {
+    // look for any <img> inside this ancestor
+    const img = ancestor.querySelector<HTMLImageElement>('img');
+    if (img) return img;
+
+    ancestor = ancestor.parentElement;
+  }
+  return null;
+}
+
 if (site === 'facebook') {
     function injectButtons() {
-        const currencyRegex = /[$€£¥]\s?\d+[,.]?\d*/;
+        const currencyRegex = /^[$€£¥]\s?\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{2})?$/;
         const priceElements = Array.from(document.querySelectorAll('span'))
-            .filter((el) => currencyRegex.test(el.textContent || ''));
+            .filter((el) => currencyRegex.test(el.innerHTML.trim()));
 
-        priceElements.forEach(priceEl => {
-            const parentSpan = priceEl.parentElement;
+        priceElements.forEach((priceEl) => {
+            const targetSpan = priceEl.closest("div")?.querySelector(':scope > span'); // Accounts for discount span
+            console.log('child span:', priceEl);
+            // console.log('parent span:', targetSpan);
 
-            // Avoid injecting multiple buttons
-            if ((priceEl.nextSibling as HTMLElement).classList.contains('fbm-alt-btn')) {
+            if (!targetSpan) {
+                console.warn('No parent span found for price element:', priceEl);
                 return;
             }
 
-            // Find the closest img[alt] in the same listing card
-            const card = priceEl.closest('[role="article"], [data-testid="marketplace_feed_item"]');
-            if (!card) return;
-            const img = card.querySelector('img[alt]');
-            if (!img) return;
-            const alt = img.getAttribute('alt');
+            const price = getPrice(priceEl.innerHTML.trim());
+            console.log('price:', price);
 
+            // Avoid injecting multiple buttons
+            if (targetSpan && targetSpan.querySelector('.fbm-alt-btn')) {
+                return;
+            }
+
+            // Extracts image and alt text
+            const img = findNearestImg(priceEl); 
+            console.log('image:',img);
+            if (!img) return;
+
+            const alt = img.getAttribute('alt');
+            console.log('alt:',alt);
             // Create button
+
             const btn = document.createElement('button');
             btn.textContent = 'Show Alt';
             btn.className = 'fbm-alt-btn';
             btn.style.marginLeft = '6px';
             btn.onclick = (e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 alert(alt || 'No alt text found');
             };
 
-            if (priceEl.parentNode) {
-                priceEl.parentNode.insertBefore(btn, priceEl.nextSibling);
+            if (targetSpan) {
+                console.log('Appending button to parent span:', targetSpan);
+                targetSpan.appendChild(btn);
             }
         });
     }
-
-    // Initial injection
-    injectButtons();
 
     // MutationObserver to inject buttons for new listings
     let debounceTimeout: number | undefined;
