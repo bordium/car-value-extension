@@ -7,7 +7,7 @@ type dataEntry = {
     price: number;
     mileage?: number;
     imageUrl?: string; // optional, in case the image is not available
-    source: 'facebook' | 'craigslist';
+    source: 'facebook' | 'craigslist' | null;
 };
 
 export type { dataEntry };
