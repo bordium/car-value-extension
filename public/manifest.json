@@ -9,9 +9,6 @@
         "48": "icons/icon48.png",
         "128": "icons/icon128.png"
     },
-    "host_permissions": [
-        "*://*.facebook.com/marketplace/*"
-    ],
     "permissions": [
         "storage",
         "scripting"
@@ -30,6 +27,14 @@
             "js": ["scripts/content.js"],
             "css": ["shared.css"],
             "run_at": "document_idle"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "assets/kbb-logo.png"
+            ],
+            "matches": ["<all_urls>"]
         }
     ]
 }

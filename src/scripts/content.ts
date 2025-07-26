@@ -1,20 +1,14 @@
 import type { dataEntry } from '../shared/types.ts'
-import * as carMakesJSON from '../config/makes.json'
-import * as carModelsJSON from '../config/models.json'
+import * as makesModelJSON from '../config/make_model.json'
 // import { title } from 'process';
 
-type MakesType = {
-    [makes: string]: string;
-};
-
-type ModelsType = {
+type makeModelsType = {
     [makes: string]: string[];
 }
 
 const url = window.location.href; 
-const carMakes: MakesType = carMakesJSON as MakesType;
-const carModels: ModelsType = carModelsJSON as ModelsType;
-console.log('carMakes:', carModels);
+const makeModels: makeModelsType = makesModelJSON as makeModelsType;
+const THRESHOLD = 0.6;
 
 let site: 'facebook' | 'craigslist' | null = null;
 let productPage: boolean = false;
@@ -39,12 +33,11 @@ if (url.includes('facebook.com/marketplace')) {
  */
 function getPrice(priceStr: string): number {
     // console.log('priceStr:', priceStr);
-    const regex = /[0-9.,]+/g;
-    const match = priceStr.match(regex)?.[0];
-    const price = match ? parseInt(match.trim(), 10) : NaN;
+    priceStr = priceStr.replace(/\D/g, '');
+    const price = parseInt(priceStr.trim(), 10) || NaN;
     
     if (isNaN(price)) {
-        console.warn('Invalid price found:', priceStr);
+        // console.warn('Invalid price found:', priceStr);
         return -1; // -1 indicates an invalid price
     }
 
@@ -91,141 +84,233 @@ function getNthAncestor(el: Element, selector: string, n: number): Element | nul
       }
     }
     node = node.parentElement;
+    if (!node) {
+      break; // reached the top of the DOM tree
+    }
   }
 
   return null;
 }
 
+/**
+ * Compute the Levenshtein distance between two strings.
+ */
+function levenshtein(a: string, b: string): number {
+    const dp: number[][] = Array(a.length + 1).fill(0).map(() => Array(b.length + 1).fill(0));
+    for (let i = 0; i <= a.length; i++) {
+        dp[i][0] = i;
+    }
+    for (let j = 0; j <= b.length; j++) {
+        dp[0][j] = j;
+    }
+    for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+            dp[i][j] = Math.min(
+                dp[i - 1][j] + 1,
+                dp[i][j - 1] + 1,
+                dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+            );
+        }
+    }
+    return dp[a.length][b.length];
+}
+
+/**
+ * Returns a similarity score between 0 and 1 (inclusive) based on Levenshtein distance.
+ */
+function similarity(a: string, b: string): number {
+    const dist = levenshtein(a, b);
+    const maxLen = Math.max(a.length, b.length);
+    return maxLen === 0 ? 1 : 1 - dist / maxLen;
+}
+
+/**
+ * Normalizes strings for similarity comparison.
+ * 
+ * @param s String to normalize.
+ * @returns String with all non-alphanumeric characters removed and converted to lowercase.
+ */
+function normalizeStr(s: string): string {
+return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Finds the best matching model from a list of models and returns it,
+ * or returns null if no match exceeds the threshold.
+ *
+ * @param models    List of raw model names (may contain hyphens).
+ * @param titleWords  Array of words from the listing title (split on whitespace).
+ * @param threshold Similarity threshold [0..1] for fuzzy matches.
+ */
+function bestModelMatch(models: string[], titleWords: string[], threshold: number): string {
+    const normalizedModels = models.map((m) => normalizeStr(m));
+
+    for (let i = 0; i < titleWords.length; i++) {
+        const w1 = normalizeStr(titleWords[i]);
+
+        const exactIndexes = normalizedModels
+        .map((nm, idx) => (nm === w1 ? idx : -1))
+        .filter((idx) => idx !== -1);
+        if (exactIndexes.length === 1) {
+        return models[exactIndexes[0]];
+        }
+
+        if (i + 1 < titleWords.length) {
+            const w2 = normalizeStr(titleWords[i + 1]);
+            const phrase = w1 + w2; 
+
+            // compute similarity against all normalizedModels
+            const scores = normalizedModels.map((nm, idx) => ({
+                idx,
+                score: similarity(phrase, nm),
+        }));
+        // sort descending by score
+        scores.sort((a, b) => b.score - a.score);
+
+        const best = scores[0];
+        if (best.score >= threshold) {
+            return models[best.idx];
+        }
+        }
+    }
+
+    // no suitable match
+    return '';
+}
+
 function parseListingTitle(title: string[]): dataEntry | null  {
-        let models: string[] | null = null;
-        let year = 0;
-        const data: dataEntry = {
-            make: '',
-            model: '',
-            url: '',
-            source: null,
-            year: 0,
-            price: 0,
-        }; 
+    let models = null;
+    let year = 0;
+    const year_pattern = /\b(?:\d{4}|'?\d{2})\b/;
 
-        for (const rawElement of title) {
-            const element = rawElement.toLowerCase();
-            const yearMatch = element.match(/\b(?:\d{4}|'?\d{2})\b/) || null;
+    const data: dataEntry = {
+        make: '',
+        model: '',
+        url: '',
+        source: null,
+        title:  title.join(' '),
+        year: 0,
+        price: 0
+    }; 
 
-            if (carMakes[element]) {
-                const make = carMakes[element];
-                data.make = make;
-                models = carModels[make];
-                console.log('make:', make);
-                continue;
-            } 
+    for (let i = 0; i < title.length; i++) {
+        const element = title[i].toLowerCase();
+        const yearMatch = element.match(year_pattern) || null;
 
-            if (yearMatch) {
-                if (yearMatch[0].length === 3) {
-                    year = parseInt(`20${yearMatch[0]}`, 10); // Convert '25 to 2025
-                } else {
-                    year = parseInt(yearMatch[0], 10);
-                }
+        if (yearMatch) {
+            year = parseInt(yearMatch[0], 10);
+            if (year >= 1900 && year <= new Date().getFullYear() + 1) {
                 data.year = year;
-                console.log('year:', year);
-                continue;
-            }
-
-            const model = element.toLowerCase();
-            console.log('model:', model);
-
-            if (models) {
-                console.log('models:', models);
+                // console.log('year:', year);
+                title[i] = ''; // Clear year from title
+                continue
             }
         }
 
-        if (data.make === '') {
-            return null;
+        if (!models && makeModels[element]) {
+            models = makeModels[element];
+            data.make = element; 
+            title[i] = ''; // Clear make from title
         }
-        return data;
+
+        if (data.year && models) {
+            data.model = bestModelMatch(models, title, THRESHOLD);
+        }
+    }
+
+    if (data.make === '' || data.year === 0) {
+        return null;
+    }
+
+    return data;
 }
 
 
 if (site === 'facebook') {
     function injectButtons() {
-        const currencyRegex = /^[$€£¥]\s?[0-9]{1,3}?(?:[,.]?\d{3})*(?:[,.]\d{2})?$/;
+        const currencyRegex = /^[$€£¥₹₽₩₪₫฿₴₦]\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?$/;
         const priceElements = Array.from(document.querySelectorAll('span'))
-            .filter((el) => currencyRegex.test(el.innerHTML.trim()));
+            .filter((el) => currencyRegex.test(el.innerHTML.trim()))
 
         priceElements.forEach((priceEl) => {
-            // console.log('child span:', priceEl);
             const divs = getNthAncestor(priceEl, 'div', 3)?.querySelectorAll(':scope > div');
-            console.log(divs)
+            const price = getPrice(priceEl.innerHTML.trim());
+            if (price < 500) {
+                console.log('Low price detected, skipping button injection:', price);
+                return; // low price indicates parts
+            }
+            console.log('child span:', priceEl);
+            console.log('divs: ', divs)
 
             if (!divs || divs.length < 1) {
-                console.warn('No parent div found for price element:', priceEl);
+                console.log('No parent div found for price element:', priceEl);
                 return;
             }
 
-            const buttonSpan = divs[0].querySelector(':scope > span'); // selects price span
-            // console.log('button span:', buttonSpan);
+            const buttonSpan = divs[0].querySelector(':scope > span'); // selects price row to place button 
+            console.log(buttonSpan);
+
+            if (!buttonSpan || buttonSpan.querySelector('.fbm-alt-btn')) {
+                return;
+            }
 
             if (!productPage) {
-                const titleText = divs[1] ? (divs[1] as HTMLElement).innerText.trim().toLowerCase().split(' ') : '';
-                if (!titleText || titleText.length === 0) {
+                const titleText = divs[1] ? (divs[1] as HTMLElement).innerText.trim().toLowerCase().split(' ') : [];
+                if (titleText.length === 0) {
                     return;
                 }
 
                 const data = parseListingTitle(titleText);
-
                 if (!data) {
                     return;
                 }
 
-                data.source = 'facebook';
-
-                const locationText = divs[2] ? (divs[2] as HTMLElement).innerText.trim().toLowerCase() : '';
+                const locationText = divs[2] ? (divs[2] as HTMLElement).innerText.trim().toLowerCase() : null;
                 if (divs.length > 3) {
-                    const odometerText = divs[3] ? (divs[3] as HTMLElement).innerText.trim().toLowerCase() : '';
-                    console.log('odometerText:', odometerText);
+                    const odometerText = divs[3] ? (divs[3] as HTMLElement).innerText.trim().toLowerCase() : null;
+                    data.mileage = odometerText ? parseInt(odometerText.replace(/\D/g, ''), 10) : -1;
                 }
-                console.log('locationText:', locationText);
-            } 
 
-            if (!buttonSpan) {
-                console.warn('No parent span found for price element:', priceEl);
-                return;
-            }
+                data.source = 'facebook';
+                data.price = price;
+                data.location = locationText || 'unknown';
+                const img = findNearestImg(priceEl); 
+                console.log('image:',img);
+                const kbbLink = `https://www.kbb.com/${data.make}/${data.model}/${data.year}/`;
 
-            const price = getPrice(priceEl.innerHTML.trim());
-            console.log('price:', price);
+                const btn = document.createElement('button');
+                btn.className = 'fbm-alt-btn';
+                btn.style.marginLeft = '5px';
+                btn.style.background = '#10105c';
+                btn.style.borderRadius = '10%';
+                btn.style.boxShadow = '0 1px 4px rgba(0,0,0,0.15)';
+                btn.style.border = '#101080 solid 1px';
+                btn.style.padding = '0';
+                btn.style.cursor = 'pointer';
+                btn.style.height = '1.50rem';
+                btn.style.aspectRatio = '2.5 / 1';
+                btn.style.width = 'auto';
+                btn.style.display = 'inline-block';
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    window.open(kbbLink, '_blank');
+                }
 
-            // Avoid injecting multiple buttons
-            if (buttonSpan && buttonSpan.querySelector('.fbm-alt-btn')) {
-                return;
-            }
-
-            // Extracts image and alt text
-            const img = findNearestImg(priceEl); 
-            console.log('image:',img);
-            if (!img) return;
-
-            const alt = img.getAttribute('alt');
-            console.log('alt:',alt);
-            // Create button
-
-            const btn = document.createElement('button');
-            btn.textContent = 'Show Alt';
-            btn.className = 'fbm-alt-btn';
-            btn.style.marginLeft = '6px';
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                alert(alt || 'No alt text found');
-            };
-
-            if (buttonSpan) {
-                // console.log('Appending button to parent span:', buttonSpan);
+                const imgEl = document.createElement('img');
+                imgEl.src = chrome.runtime.getURL('assets/kbb-logo.png');
+                imgEl.alt = (divs[1] as HTMLElement).innerText.trim();
+                imgEl.style.display = 'block';
+                imgEl.style.width = '100%';
+                imgEl.style.height = '100%';
+                imgEl.style.objectFit = 'contain';
+                btn.appendChild(imgEl);
                 buttonSpan.appendChild(btn);
-            }
+            } 
         });
     }
 
+    injectButtons();
     // MutationObserver to inject buttons for new listings
     let debounceTimeout: number | undefined;
     const observer = new MutationObserver(() => {
