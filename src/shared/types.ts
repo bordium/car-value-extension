@@ -1,4 +1,4 @@
-type dataEntry = {
+type DataEntry = {
     make: string;
     model: string;
     url: string;
@@ -12,4 +12,4 @@ type dataEntry = {
     source: 'facebook' | 'craigslist' | null;
 };
 
-export type { dataEntry };
+export type { DataEntry };
