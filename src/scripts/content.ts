@@ -3,7 +3,7 @@ import * as makesModelJSON from '../config/make_model.json'
 
 const url = window.location.href; 
 const makeModels: MakeModelsType = makesModelJSON as MakeModelsType;
-const THRESHOLD = 0.6;
+const THRESHOLD = 0.4;
 
 
 type MakeModelsType = {
@@ -31,10 +31,10 @@ if (url.includes('facebook.com/marketplace')) {
  * 
  * @returns {HTMLButtonElement} that allows users to add a listing into their tracker
  */
-function createCheckmarkButton(): HTMLButtonElement {
+function createCheckmarkButton(data: DataEntry, storageKey: string): HTMLButtonElement {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.style.background = '#16a34a'; // green-600
+    btn.style.background = '#2563eb';
     btn.style.border = 'none';
     btn.style.borderRadius = '50%';
     btn.style.width = '1.5rem';
@@ -45,28 +45,79 @@ function createCheckmarkButton(): HTMLButtonElement {
     btn.style.cursor = 'pointer';
     btn.style.transition = 'background 0.2s';
     btn.style.boxShadow = '0 1px 4px rgba(0,0,0,0.15)';
-    btn.style.marginLeft = '8px';
+    btn.style.marginRight = '8px';
     btn.style.position = 'relative';
 
-    // Checkmark SVG
+    let alreadyClicked = false;
+
     const svgNS = 'http://www.w3.org/2000/svg';
+    const plusSvg = document.createElementNS(svgNS, 'svg');
+    plusSvg.setAttribute('width', '20');
+    plusSvg.setAttribute('height', '20');
+    plusSvg.setAttribute('viewBox', '0 0 20 20');
+    plusSvg.style.display = 'block';
+    plusSvg.innerHTML = `
+      <line x1="10" y1="5" x2="10" y2="15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <line x1="5" y1="10" x2="15" y2="10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    `;
     const checkSvg = document.createElementNS(svgNS, 'svg');
     checkSvg.setAttribute('width', '20');
     checkSvg.setAttribute('height', '20');
     checkSvg.setAttribute('viewBox', '0 0 20 20');
-    checkSvg.style.display = 'block';
+    checkSvg.style.display = 'none';
     checkSvg.innerHTML = `
       <polyline points="5 11 9 15 15 7" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     `;
-
+    btn.appendChild(plusSvg);
     btn.appendChild(checkSvg);
 
-    // Hover effect: darken green
+    function showChecked() {
+        btn.classList.add('checked');
+        btn.style.background = '#16a34a';
+        plusSvg.style.display = 'none';
+        checkSvg.style.display = 'block';
+    }
+
+    if (data?.url) {
+        chrome.storage.local.get([storageKey], (res) => {
+            const arr: DataEntry[] = Array.isArray(res[storageKey]) ? res[storageKey] : [];
+            if (arr.some(item => item && item.url === data.url)) {
+                alreadyClicked = true;
+                showChecked();
+            }
+        });
+    }
+
     btn.addEventListener('mouseenter', () => {
-        btn.style.background = '#15803d'; // darker green
+        btn.style.background = alreadyClicked ? '#15803d' : '#1d4ed8';
     });
     btn.addEventListener('mouseleave', () => {
-        btn.style.background = '#16a34a';
+        btn.style.background = alreadyClicked ? '#16a34a' : '#2563eb';
+    });
+
+    btn.addEventListener('click', () => {
+        if (!data) return;
+        chrome.storage.local.get([storageKey], (res) => {
+            const arr: DataEntry[] = Array.isArray(res[storageKey]) ? [...res[storageKey]] : [];
+            const index = arr.findIndex(item => item && item.url === data.url);
+
+            if (index === -1) {
+                // Add
+                arr.push(data);
+                chrome.storage.local.set({ [storageKey]: arr });
+                alreadyClicked = true;
+                showChecked();
+            } else {
+                // Remove
+                arr.splice(index, 1);
+                chrome.storage.local.set({ [storageKey]: arr });
+                alreadyClicked = false;
+                btn.classList.remove('checked');
+                btn.style.background = '#2563eb';
+                plusSvg.style.display = 'block';
+                checkSvg.style.display = 'none';
+            }
+        });
     });
 
     return btn;
@@ -308,9 +359,15 @@ function fillFBData(infoDiv: NodeListOf<Element>, price: number, imgEl: HTMLImag
         title: '',
         source: 'facebook'
     }; 
-    const titleText = infoDiv[1] ? (infoDiv[1] as HTMLElement).innerText.trim().toLowerCase().split(' ') : [];
-    const locationText = infoDiv[2] ? (infoDiv[2] as HTMLElement).innerText.trim().toLowerCase() : null;
-    const odometerText = infoDiv[3] ? (infoDiv[3] as HTMLElement).innerText.trim().toLowerCase() : null;
+    const titleText = (infoDiv[1] && (infoDiv[1] as HTMLElement).innerText)
+        ? (infoDiv[1] as HTMLElement).innerText.trim().toLowerCase().split(' ')
+        : [];
+    const locationText = (infoDiv[2] && (infoDiv[2] as HTMLElement).innerText)
+        ? (infoDiv[2] as HTMLElement).innerText.trim().toLowerCase()
+        : null;
+    const odometerText = (infoDiv[3] && (infoDiv[3] as HTMLElement).innerText)
+        ? (infoDiv[3] as HTMLElement).innerText.trim().toLowerCase()
+        : null;
 
     if (titleText.length === 0) {
         return null;
@@ -360,7 +417,10 @@ function fillCLData(card: Element): DataEntry | null {
         source: 'craigslist'
     }; 
 
-    const title = (card.querySelector('.label') as HTMLElement).innerText.toLowerCase().split(' ');
+    const labelEl = card.querySelector('.label') as HTMLElement | null;
+    const title = labelEl && labelEl.innerText
+        ? labelEl.innerText.toLowerCase().split(' ')
+        : [];
     if (title.length === 0 ) {
         return null;
     }
@@ -370,13 +430,12 @@ function fillCLData(card: Element): DataEntry | null {
         return null;
     }
 
-    const price = (card.querySelector('.priceinfo') as HTMLElement).innerText;
-    if (!price || price === 'free') {
-        return null;
-    }
+    const priceEl = card.querySelector('.priceinfo') as HTMLElement | null;
+    const price = priceEl && priceEl.innerText ? priceEl.innerText : '';
     data.price = getPrice(price);
 
-    const metaData = (card.querySelector('.meta') as HTMLElement).innerText.split('\n');
+    const metaEl = card.querySelector('.meta') as HTMLElement | null;
+    const metaData = metaEl && metaEl.innerText ? metaEl.innerText.split('\n') : null;
     if (!metaData) {
         return null;
     }
@@ -403,8 +462,6 @@ function fillCLData(card: Element): DataEntry | null {
 
     return data;
 }
-
-
 
 if (site === 'facebook') {
     function injectFBButtons() {
@@ -438,8 +495,8 @@ if (site === 'facebook') {
             }
 
             const hasModel: boolean = (data.model !== '');
-            console.log(data)
-            console.log(hasModel)
+            // console.log(data)
+            // console.log(hasModel)
 
             // Creates KBB buttons
             if (hasModel) {
@@ -458,13 +515,15 @@ if (site === 'facebook') {
                 btn.style.width = 'auto';
                 btn.style.display = 'inline-block';
                 btn.onclick = (e) => {
-                    e.stopPropagation();
+                    e.stopImmediatePropagation();
                     e.preventDefault();
                     window.open(kbbLink, '_blank');
                 }
                 const imgEl = document.createElement('img');
                 imgEl.src = chrome.runtime.getURL('assets/kbb-logo.png');
-                imgEl.alt = (divs[1] as HTMLElement).innerText.trim();
+                imgEl.alt = (divs[1] && (divs[1] as HTMLElement).innerText)
+                    ? (divs[1] as HTMLElement).innerText.trim()
+                    : '';
                 imgEl.style.display = 'block';
                 imgEl.style.width = '100%';
                 imgEl.style.height = '100%';
@@ -492,9 +551,10 @@ if (site === 'facebook') {
     function injectCLButtons() {
         const cards = Array.from(document.querySelectorAll('.gallery-card'));
         cards.forEach((card) => {
-            console.log(cards);
-            // Avoid duplicate button
-            if (card.querySelector('.cl-alt-btn')) {
+            // console.log(cards);
+
+            // Avoid duplicate buttons
+            if (card.querySelector('.cl-btn-container')) {
                 return;
             }
 
@@ -502,7 +562,21 @@ if (site === 'facebook') {
             if (!data) {
                 return;
             }
-            
+
+            // Create container div for buttons
+            const btnContainer = document.createElement('div');
+            btnContainer.className = 'cl-btn-container';
+            btnContainer.style.display = 'flex';
+            btnContainer.style.alignItems = 'center';
+            btnContainer.style.marginTop = '4px';
+            btnContainer.style.marginBottom = '2px';
+            btnContainer.style.justifyContent = 'space-between';
+                btnContainer.style.width = '100%'; // allow pushing elements to right
+                btnContainer.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+            });
+
             const hasModel = (data.model !== '')
             if (hasModel) {
                 const kbbLink = `https://www.kbb.com/${data.make}/${data.model}/${data.year}/`;
@@ -520,7 +594,7 @@ if (site === 'facebook') {
                 btn.style.width = 'auto';
                 btn.style.display = 'inline-block';
                 btn.onclick = (e) => {
-                    e.stopPropagation();
+                    e.stopImmediatePropagation();
                     e.preventDefault();
                     window.open(kbbLink, '_blank');
                 }
@@ -532,17 +606,20 @@ if (site === 'facebook') {
                 imgEl.style.height = '100%';
                 imgEl.style.objectFit = 'contain';
                 btn.appendChild(imgEl);
-                card.appendChild(btn);
-                console.log(data)
+                btnContainer.appendChild(btn);
+                // console.log(data)
             }
-            
-            const addBtn = createCheckmarkButton();
-            addBtn.onclick = (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                await chrome.storage.local.set({ craigslist: data })
-                }
-            card.appendChild(addBtn);
+
+            const addBtn = createCheckmarkButton(data, 'value-craigslist');
+            addBtn.className = 'cl-add-btn'
+                addBtn.style.marginLeft = 'auto'; // push to right edge
+                addBtn.style.marginRight = '0';
+            btnContainer.appendChild(addBtn);
+            card.appendChild(btnContainer);
+            chrome.storage.local.get(null, (result) => {
+                console.log(Object.keys(result))
+                console.log(Object.values(result))
+            });
         });
     }
 
