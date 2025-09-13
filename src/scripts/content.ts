@@ -353,9 +353,9 @@ function fillFBData(infoDiv: NodeListOf<Element>, price: number, imgEl: HTMLImag
         url: '',
         year: 0,
         price: 0,
-        mileage: -1,
-        location: '',
-        imageUrl: '',
+        mileage: null,
+        location: null,
+        imageUrl: null,
         title: '',
         source: 'facebook'
     }; 
@@ -410,9 +410,9 @@ function fillCLData(card: Element): DataEntry | null {
         url: '',
         year: 0,
         price: 0,
-        mileage: -1,
-        location: '',
-        imageUrl: '',
+        mileage: null,
+        location: null,
+        imageUrl: null,
         title: '',
         source: 'craigslist'
     }; 

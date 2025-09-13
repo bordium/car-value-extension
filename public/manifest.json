@@ -40,7 +40,7 @@
         "*://*.craigslist.pl/*"
     ],
     "options_ui": {
-        "page": "src/options/index.html",
+        "page": "src/options/options.html",
         "open_in_tab": true
     },
     "content_scripts": [
@@ -76,6 +76,9 @@
             "run_at": "document_idle"
         }
     ],
+    "action": {
+        "default_popup": "src/popup/popup.html"
+    },
     "web_accessible_resources": [
         {
             "resources": [
