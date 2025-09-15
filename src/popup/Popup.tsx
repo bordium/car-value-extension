@@ -77,28 +77,44 @@ export default function Popup() {
             }
         })();
 
-        return () => { mounted = false };
+        return () => { 
+            mounted = false
+        };
     }, [data]);
 
     if (!data || data.length === 0) {
         return (
-            <div id="root-div">
-                <div id="title-div">
-                    <p id="title-text"> Your Watchlist </p>
+            <div className="empty-root">
+                <div className="empty-title-wrapper">
+                    <p className="title">Your Watchlist</p>
                 </div>
-                <p id="empty-message">Nothing is in your watchlist yet.</p>
+                <p className="empty-message">Nothing is in your watchlist yet.</p>
             </div>
         );
     }
 
+    const rootClass = data.length > 5 ? 'popup-root scrollable' : 'popup-root';
+
     return (
-        <div className="popup-root">
+        <div className={rootClass}>
+            <div className="title-wrapper">
+                <p className="title">Your Watchlist</p>
+            </div>
             {data.map((entry, index) => {
                 const kbbLink = entry.make && entry.model && entry.year
                     ? `https://www.kbb.com/${entry.make}/${entry.model}/${entry.year}/`
                     : '';
                 const priceStr = entry.price && entry.price > 0 ? `$${entry.price.toLocaleString()}` : 'N/A';
-                const mileageStr = entry.mileage && entry.mileage >= 0 ? `${entry.mileage.toLocaleString()} mi` : 'N/A';
+                let mileageStr = '';
+                if (entry.mileage && entry.mileage >= 0) {
+                    if (entry.mileage >= 1000) {
+                        mileageStr = `${(entry.mileage / 1000).toFixed(1)} mi`;
+                    } else {
+                        mileageStr = `${entry.mileage.toLocaleString()}k mi`;
+                    } 
+                } else {
+                    mileageStr = 'N/A';
+                } 
                 const locationStr = entry.location && entry.location.trim().length > 0 ? entry.location : 'Unknown';
                 const sourceStr = entry.source ? entry.source.charAt(0).toUpperCase() + entry.source.slice(1) : 'N/A';
 
@@ -110,8 +126,27 @@ export default function Popup() {
                     // ignore
                 }
 
+                const handleRemove = (e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (!entry.url) return;
+                    chrome.storage.local.get('value-craigslist', (res) => {
+                        const arr: DataEntry[] = Array.isArray(res['value-craigslist']) ? res['value-craigslist'] : [];
+                        const filtered = arr.filter(item => item && item.url !== entry.url);
+                        chrome.storage.local.set({ 'value-craigslist': filtered });
+                    });
+                };
+
                 return (
                     <div key={index} className="entry-card">
+                        <button
+                            type="button"
+                            className="entry-remove-btn"
+                            aria-label="Remove from watchlist"
+                            onClick={handleRemove}
+                        >
+                            X
+                        </button>
                         <div className="entry-image-container">
                             {entry.imageUrl ? (
                                 <img src={entry.imageUrl} alt={entry.title} className="entry-image" />
