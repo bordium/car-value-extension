@@ -107,6 +107,10 @@ function createCheckmarkButton(data: DataEntry, storageKey: string): HTMLButtonE
                 chrome.storage.local.set({ [storageKey]: arr });
                 alreadyClicked = true;
                 showChecked();
+                // After adding, attempt to upgrade placeholder image via polling (option 3)
+                if (!data.imageUrl || data.imageUrl.startsWith('data:')) {
+                    startImageUpgrade(data, storageKey);
+                }
             } else {
                 // Remove
                 arr.splice(index, 1);
@@ -120,7 +124,46 @@ function createCheckmarkButton(data: DataEntry, storageKey: string): HTMLButtonE
         });
     });
 
+
     return btn;
+}
+
+// Polling approach to upgrade a placeholder (data URI) Craigslist image
+function startImageUpgrade(data: DataEntry, storageKey: string) {
+    const MAX_ATTEMPTS = 8; // e.g., ~4s if interval=500ms
+    const INTERVAL = 500;
+    let attempts = 0;
+
+    const timer = setInterval(() => {
+        attempts++;
+        // Find the card again by matching anchor href
+        const cards = Array.from(document.querySelectorAll('.gallery-card'));
+        const card = cards.find(c => {
+            const a = c.querySelector('a');
+            return a && data.url && a.href === data.url;
+        });
+        if (card) {
+            const img = card.querySelector('img');
+            if (img) {
+                const realSrc = img.currentSrc || img.src;
+                if (realSrc && !realSrc.startsWith('data:')) {
+                    chrome.storage.local.get([storageKey], (res) => {
+                        const arr: DataEntry[] = Array.isArray(res[storageKey]) ? [...res[storageKey]] : [];
+                        const idx = arr.findIndex(item => item && item.url === data.url);
+                        if (idx !== -1 && arr[idx].imageUrl !== realSrc) {
+                            arr[idx] = { ...arr[idx], imageUrl: realSrc };
+                            chrome.storage.local.set({ [storageKey]: arr });
+                        }
+                    });
+                    clearInterval(timer);
+                    return;
+                }
+            }
+        }
+        if (attempts >= MAX_ATTEMPTS) {
+            clearInterval(timer);
+        }
+    }, INTERVAL);
 }
 
 /**
