@@ -22,6 +22,7 @@ export default function Popup() {
         return () => chrome.storage.onChanged.removeListener(onChanged);
     }, []);
 
+    // Sanitize entries by validating imageUrl and url on popup open and whenever data changes
     useEffect(() => {
         let mounted = true;
         (async () => {
@@ -32,6 +33,7 @@ export default function Popup() {
                     let changed = false;
                     const updated: DataEntry = { ...entry };
 
+                    // Validate imageUrl
                     if (entry.imageUrl && typeof entry.imageUrl === 'string' && entry.imageUrl.trim().length > 0) {
                         try {
                             const ok = await checkUrl(entry.imageUrl);
@@ -77,6 +79,7 @@ export default function Popup() {
 
         return () => { mounted = false };
     }, [data]);
+
     if (!data || data.length === 0) {
         return (
             <div id="root-div">
@@ -89,30 +92,67 @@ export default function Popup() {
     }
 
     return (
-    <div className="root-div">
-        {data.map((entry, index) => (
-            <div key={index} className="entry-div">
-                <span className="entry-span">
-                    <h3>{entry.title}</h3>
-                    {entry.imageUrl ? (
-                        <img src={entry.imageUrl} alt={entry.title} className="entry-image" />
-                    ) : (
-                        <img src="/assets/no-image.jpg" alt="No image available" className="entry-image" />
-                    )}
-                    <p>Price: ${entry.price}</p>
-                    {entry.url ? (
-                        <a href={entry.url} target="_blank" rel="noopener noreferrer">View Listing</a>
-                    ) : (
-                        <span style={{ color: '#666' }}>Link unavailable</span>
-                    )}
-                </span>
-            </div>
-        ))}
+        <div className="popup-root">
+            {data.map((entry, index) => {
+                const kbbLink = entry.make && entry.model && entry.year
+                    ? `https://www.kbb.com/${entry.make}/${entry.model}/${entry.year}/`
+                    : '';
+                const priceStr = entry.price && entry.price > 0 ? `$${entry.price.toLocaleString()}` : 'N/A';
+                const mileageStr = entry.mileage && entry.mileage >= 0 ? `${entry.mileage.toLocaleString()} mi` : 'N/A';
+                const locationStr = entry.location && entry.location.trim().length > 0 ? entry.location : 'Unknown';
+                const sourceStr = entry.source ? entry.source.charAt(0).toUpperCase() + entry.source.slice(1) : 'N/A';
+
+                let kbbLogo = 'assets/kbb-logo.png';
+
+                try {
+                    kbbLogo = chrome?.runtime?.getURL('assets/kbb-logo.png') ?? 'assets/kbb-logo.png';
+                } catch {
+                    // ignore
+                }
+
+                return (
+                    <div key={index} className="entry-card">
+                        <div className="entry-image-container">
+                            {entry.imageUrl ? (
+                                <img src={entry.imageUrl} alt={entry.title} className="entry-image" />
+                            ) : null}
+                        </div>
+
+                        <div className="entry-content">
+                            <div className="entry-header">
+                                <div className="entry-title" title={entry.title}>
+                                    {entry.title}
+                                </div>
+
+                            </div>
+
+                            <div className="entry-details">
+                                <div><strong>Location:</strong> {locationStr}</div>
+                                <div><strong>Mileage:</strong> {mileageStr}</div>
+                                <div><strong>Price:</strong> {priceStr}</div>
+                                <div><strong>Source:</strong> {sourceStr}</div>
+                                {kbbLink ? (
+                                    <button
+                                        className="kbb-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            if (kbbLink) window.open(kbbLink, '_blank');
+                                        }}
+                                    >
+                                        <img src={kbbLogo} alt={entry.title} />
+                                    </button>
+                                ) : null}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 }
 
-const container = document.getElementById('root')
+const container = document.getElementById('root');
 if (container) {
-    createRoot(container).render(<Popup />)
+    createRoot(container).render(<Popup />);
 }

@@ -40,6 +40,93 @@ html, body {
     align-items: flex-start;
 }
 
+.popup-root {
+    padding: 8px;
+}
+
+.entry-card {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+    background: #fff;
+}
+
+.entry-image-container {
+    width: 120px;
+    height: 90px;
+    flex: 0 0 120px;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #f5f5f5;
+}
+
+.entry-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.entry-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.entry-title {
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.entry-details {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #333;
+    flex-wrap: nowrap; /* keep everything on one line so the button can align to the far right */
+    align-items: center;
+    width: 100%;
+}
+
+.kbb-btn {
+    margin-left: 5px;
+    background: #10105c;
+    border-radius: 10%;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    border: #101080 solid 1px;
+    padding: 0;
+    cursor: pointer;
+    height: 1.50rem;
+    aspect-ratio: 2.5 / 1;
+    width: auto;
+    display: inline-block;
+    /* push this button to the far right within the .entry-details row */
+    margin-left: auto;
+}
+
+.kbb-btn img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
 #title-div {
     width: 100%;
     text-align: center;

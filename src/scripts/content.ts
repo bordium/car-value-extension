@@ -418,7 +418,13 @@ function fillCLData(card: Element): DataEntry | null {
     }; 
 
     const labelEl = card.querySelector('.label') as HTMLElement | null;
-    const title = labelEl && labelEl.innerText
+    if (!labelEl) {
+        return null;
+    }
+
+    data.title = labelEl.innerText;
+
+    const title = labelEl.innerText
         ? labelEl.innerText.toLowerCase().split(' ')
         : [];
     if (title.length === 0 ) {
@@ -599,7 +605,12 @@ if (site === 'facebook') {
                     window.open(kbbLink, '_blank');
                 }
                 const imgEl = document.createElement('img');
-                imgEl.src = chrome.runtime.getURL('assets/kbb-logo.png');
+                try {
+                    imgEl.src = chrome?.runtime?.getURL('assets/kbb-logo.png') ?? 'assets/kbb-logo.png';
+                } catch {
+                    // ignore
+                }
+                
                 imgEl.alt = data.title;
                 imgEl.style.display = 'block';
                 imgEl.style.width = '100%';
