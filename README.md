@@ -1,45 +1,25 @@
-# Summary
-This Chrome extension enhances car listings on Facebook Marketplace and Craigslist by injecting buttons that link directly to the Kelley Blue Book (KBB) evaluation website for quick price checking.
+# Chrome Extensions Privacy Policy
 
-# Features
-- Injects a KBB lookup button next to car listings
-- Works on:
-  - facebook.com/marketplace
-  - any craigslist website
-- Uses fuzzy matching to parse make and model from a listing title
-- Watchlist where valid cars can be added
-  - Only works on craigslist for now.
+**Effective Date: August 21, 2025**
 
-# Future Improvements  
-- Facebook button injection for adding to watchlist
-- Sorting feature and data editing feature within the popup
-- User options to change the look and feel of the popup, and enable and disable buttons.
+I take your privacy seriously. This Privacy Policy explains how I handle your information when you use the Used Car Price Checker Chrome Extension.
 
-# To develop
+## Information Collection
 
-### 1. Create a fork of the repository
+My Chrome extensions do not collect, store, or transmit any personal information. I do not gather data that could identify you — such as your name, email address, IP address, or location. Because no information is collected, no data is shared, sold, or disclosed to third parties.
 
-### 2. Clone the fork of the repository
-```bash
-git clone https://github.com/[YOUR USERNAME]/car-value-extension.git
-cd car-value-extension
-```
+## Third-Party Links
 
-### 3. Install dependencies
-```bash
-npm install
-```
+My extensions may include links to external websites or services not operated by me. I am not responsible for the privacy practices of those third parties. I recommend reviewing the privacy policies of any external websites you visit.
 
-### 4. Build production directory
-```bash
-npm run build
-```
+## Policy Updates
 
-### 5. Test on chrome/chromium
-- Navigate to chrome://extensions
-- Make sure to enable developer mode in settings
-- Load unpacked and navigate so that the /dist folder is the root directory
+I may update this Privacy Policy from time to time. When I make changes, I will update the Effective Date above. Any modifications are effective immediately upon posting. I encourage you to review this policy periodically to stay informed.
 
-### 6. Create a pull request!
+## Your Consent
 
-Thank you for viewing my project. :-) 
+By using my Chrome extension, you acknowledge that you have read, understood, and agree to this Privacy Policy. If you do not agree, please discontinue use of the extension.
+
+## Contact
+
+If you have any questions or concerns about this Privacy Policy, you may contact me by [email](huang.stephen05@gmail.com).
