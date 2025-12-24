@@ -12,4 +12,6 @@ type DataEntry = {
     source: 'facebook' | 'craigslist' | null;
 };
 
-export type { DataEntry };
+type SiteName = 'facebook' | 'craigslist' | null;
+
+export type { DataEntry, SiteName };
