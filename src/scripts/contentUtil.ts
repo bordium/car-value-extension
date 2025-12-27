@@ -105,17 +105,27 @@ export function bestModelMatch(models: string[], titleWords: string[], threshold
     const normalizedModels = models.map((m) => normalizeStr(m));
 
     for (let i = 0; i < titleWords.length; i++) {
-        const w1 = normalizeStr(titleWords[i]);
+        const titleWord = titleWords[i];
+        if (!titleWord) continue;
+
+        const w1 = normalizeStr(titleWord);
 
         const exactIndexes = normalizedModels
             .map((nm, idx) => (nm === w1 ? idx : -1))
             .filter((idx) => idx !== -1);
         if (exactIndexes.length === 1) {
-            return models[exactIndexes[0]];
+            const exactIndex = exactIndexes[0];
+            if (exactIndex !== undefined) {
+                const model = models[exactIndex];
+                if (model) return model;
+            }
         }
 
         if (i + 1 < titleWords.length) {
-            const w2 = normalizeStr(titleWords[i + 1]);
+            const nextWord = titleWords[i + 1];
+            if (!nextWord) continue;
+
+            const w2 = normalizeStr(nextWord);
             const phrase = w1 + w2;
 
             const scores = normalizedModels.map((nm, idx) => ({
@@ -125,8 +135,9 @@ export function bestModelMatch(models: string[], titleWords: string[], threshold
             scores.sort((a, b) => b.score - a.score);
 
             const best = scores[0];
-            if (best.score >= threshold) {
-                return models[best.idx];
+            if (best && best.score >= threshold) {
+                const model = models[best.idx];
+                if (model) return model;
             }
         }
     }

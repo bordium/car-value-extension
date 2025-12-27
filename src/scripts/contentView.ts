@@ -51,17 +51,18 @@ export default abstract class ContentView {
         plusSvg.setAttribute('viewBox', '0 0 20 20');
         plusSvg.style.display = 'block';
         plusSvg.innerHTML = `
-      <line x1="10" y1="5" x2="10" y2="15" stroke="white" stroke-width="2" stroke-linecap="round"/>
-      <line x1="5" y1="10" x2="15" y2="10" stroke="white" stroke-width="2" stroke-linecap="round"/>
-    `;
+        <line x1="10" y1="5" x2="10" y2="15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <line x1="5" y1="10" x2="15" y2="10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        `;
+
         const checkSvg = document.createElementNS(svgNS, 'svg');
         checkSvg.setAttribute('width', '20');
         checkSvg.setAttribute('height', '20');
         checkSvg.setAttribute('viewBox', '0 0 20 20');
         checkSvg.style.display = 'none';
         checkSvg.innerHTML = `
-      <polyline points="5 11 9 15 15 7" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    `;
+        <polyline points="5 11 9 15 15 7" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        `;
         btn.appendChild(plusSvg);
         btn.appendChild(checkSvg);
 
@@ -145,7 +146,7 @@ export default abstract class ContentView {
                         chrome.storage.local.get([storageKey], (res) => {
                             const arr: DataEntry[] = Array.isArray(res[storageKey]) ? [...res[storageKey]] : [];
                             const idx = arr.findIndex(item => item && item.url === data.url);
-                            if (idx !== -1 && arr[idx].imageUrl !== realSrc) {
+                            if (arr[idx] && idx !== -1 && arr[idx].imageUrl !== realSrc) {
                                 arr[idx] = { ...arr[idx], imageUrl: realSrc };
                                 chrome.storage.local.set({ [storageKey]: arr });
                             }

@@ -26,7 +26,9 @@ export function parseListingTitle(title: string[], data: DataEntry) {
     const year_pattern = /\b(?:\d{4}|'?\d{2})\b/;
 
     for (let i = 0; i < title.length; i++) {
-        const element = title[i].toLowerCase();
+        const titleWord = title[i];
+        if (!titleWord) continue;
+        const element = titleWord.toLowerCase();
         const yearMatch = element.match(year_pattern);
 
         if (yearMatch) {
@@ -44,10 +46,12 @@ export function parseListingTitle(title: string[], data: DataEntry) {
                 data.make = element;
                 title[i] = '';
             } else {
-                const firstChar = title[i][0];
+                const titleWord = title[i];
+                if (!titleWord) continue;
+                const firstChar = titleWord[0];
                 for (const make in makeModels) {
                     if (make[0] === firstChar) {
-                        if (similarity(make, title[i]) > THRESHOLD) {
+                        if (similarity(make, titleWord) > THRESHOLD) {
                             models = makeModels[make];
                             data.make = make;
                             title[i] = '';
@@ -116,13 +120,18 @@ export function fillFBData(infoDiv: NodeListOf<Element>, price: number, imgEl: H
         data.imageUrl = imgEl.src;
     }
 
-    const anchor = getNthAncestor(infoDiv[0], 'a', 1) as HTMLAnchorElement;
+    const firstInfoDiv = infoDiv[0];
+    if (!firstInfoDiv) {
+        return null;
+    }
+
+    const anchor = getNthAncestor(firstInfoDiv, 'a', 1) as HTMLAnchorElement;
     const anchorUrl = anchor ? anchor.href : null;
     if (!anchorUrl) {
         return null;
     }
 
-    data.url = anchorUrl.split('?')[0];
+    data.url = anchorUrl.split('?')[0] ?? anchorUrl;
 
     return data;
 }
@@ -176,13 +185,18 @@ export function fillCLData(card: Element): DataEntry | null {
         return null;
     }
     if (metaData.length === 3) {
-        data.mileage = parseInt(metaData[1].replace(/\D/g, ''), 10);
-        data.location = metaData[2];
+        const mileageStr = metaData[1];
+        const locationStr = metaData[2];
+        if (mileageStr) {
+            data.mileage = parseInt(mileageStr.replace(/\D/g, ''), 10);
+        }
+        data.location = locationStr ?? null;
     } else if (metaData.length === 2) {
-        if (metaData[1].match(/^\d+k?.*/)) {
-            data.mileage = parseInt(metaData[1].replace(/\D/g, ''), 10);
+        const secondElement = metaData[1];
+        if (secondElement?.match(/^\d+k?.*/)) {
+            data.mileage = parseInt(secondElement.replace(/\D/g, ''), 10);
         } else {
-            data.location = metaData[1];
+            data.location = secondElement ?? null;
         }
     }
 

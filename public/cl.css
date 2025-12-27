@@ -1,0 +1,16 @@
+/* Craigslist-specific Styles */
+
+/* Button Container Styles */
+.cl-btn-container {
+    display: flex;
+    align-items: center;
+    margin-top: 4px;
+    margin-bottom: 2px;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.cl-add-btn {
+    margin-left: auto;
+    margin-right: 0;
+}

@@ -13,16 +13,21 @@
     "moduleDetection": "force",
     "noEmit": true,
 
-    /* Linting */
+    /* Linting and Type Safety */
     "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
     "noUncheckedSideEffectImports": true,
-    "types": [
-      "node"
-    ],
+    "noPropertyAccessFromIndexSignature": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "erasableSyntaxOnly": true,
+    "types": ["node"]
   },
   "include": ["vite.config.ts"]
 }
