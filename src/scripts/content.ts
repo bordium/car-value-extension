@@ -4,8 +4,8 @@
  */
 
 import type { SiteName } from '../shared/types';
-import FbView from './FbView';
-import ClView from './ClView';
+import FbView from './view/FbView';
+import ClView from './view/ClView';
 
 /**
  * Content class serves as the entry point for the content script.

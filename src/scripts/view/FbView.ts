@@ -4,8 +4,8 @@
  */
 
 import ContentView from './contentView';
-import { fillFBData } from './contentData';
-import { getPrice, findNearestImg, getNthAncestor } from './contentUtil';
+import { fillFBData } from '../util/dataParse';
+import { getPrice, findNearestImg, getNthAncestor } from '../util/helpers';
 
 /**
  * FbView handles button injection for Facebook Marketplace listings.

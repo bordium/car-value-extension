@@ -3,9 +3,9 @@
  * Data parsing functions for extracting car information from marketplace listings.
  */
 
-import type { DataEntry } from '../shared/types';
-import * as makesModelJSON from '../config/make_model.json';
-import { similarity, bestModelMatch, getPrice, getNthAncestor, parseMileage } from './contentUtil';
+import type { DataEntry } from '@/shared/types';
+import * as makesModelJSON from '@/config/make_model.json';
+import { similarity, bestModelMatch, getPrice, getNthAncestor, parseMileage } from './helpers';
 
 // ----------------------------------------------------------------------------
 // Types

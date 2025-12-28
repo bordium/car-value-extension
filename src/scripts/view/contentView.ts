@@ -3,7 +3,7 @@
  * Base class for marketplace listing views with shared functionality.
  */
 
-import type { DataEntry, SiteName } from '../shared/types';
+import type { DataEntry, SiteName } from '@/shared/types';
 
 /**
  * Base ContentView class with shared functionality for marketplace listings.

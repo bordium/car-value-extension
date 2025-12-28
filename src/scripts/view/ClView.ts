@@ -4,7 +4,7 @@
  */
 
 import ContentView from './contentView';
-import { fillCLData } from './contentData';
+import { fillCLData } from '../util/dataParse';
 import type { DataEntry } from '@/shared/types';
 
 /**
